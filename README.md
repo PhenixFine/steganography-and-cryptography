@@ -1,4 +1,4 @@
-# Indigo Card Game
+# Steganography and Cryptography
 Stage 2 of 4 for JetBrains Academy - Kotlin - [Steganography and Cryptography project](https://hyperskill.org/projects/160/stages/831/implement).   
 This stage has us practice reading an image file, changing the pixels, and saving the changes to a file.
 ### Description
