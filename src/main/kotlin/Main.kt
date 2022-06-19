@@ -2,9 +2,11 @@ import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
+import kotlin.experimental.xor
 
 private const val INPUT_ERROR = "Can't read input file!"
-private val END = listOf(0, 0, 3)
+private const val PASSWORD_ERROR = "Password can't be empty!"
+private val END = getBits("\u0000\u0000\u0003")
 
 fun main() {
     var command = getCommand()
@@ -29,52 +31,61 @@ private fun runCommand(command: String) {
 private fun hide(): String {
     val input = getFile("Input")
     val output = getFile("Output")
+    val userMessage = getString("Message to hide:").let { it.ifEmpty { null } } ?: return "Message can't be empty!"
+    val password = getPassword() ?: return PASSWORD_ERROR
     val image = getBufferedImage(input) ?: return INPUT_ERROR
-    val userMessage = getBits()
-    val enoughSpace = image.width * image.height >= userMessage.length
+    val enoughSpace = image.width * image.height >= userMessage.length * 8 + END.size
     val notLargeEnough = "The input image is not large enough to hold this message."
     val message = if (enoughSpace) "Message saved in ${output.name} image." else return notLargeEnough
-    val save = { if (saveImage(image, output)) message else "Can't write to output file!" }
+    val bits = transformBits(getBits(userMessage), password) + END
     var index = 0
 
-    for (y in 0 until image.height) {
+    start@ for (y in 0 until image.height) {
         for (x in 0 until image.width) {
-            if (index == userMessage.length) return save()
-            val bit = userMessage[index++].digitToInt()
+            if (index == bits.size) break@start
+            val bit = bits[index++].toInt()
             val color = Color(image.getRGB(x, y)).let { Color(it.red, it.green, it.blue.and(254).or(bit)) }
             image.setRGB(x, y, color.rgb)
         }
     }
-    return save()
+    return if (saveImage(image, output)) message else "Can't write to output file!"
 }
 
 private fun show(): String {
     val input = getFile("Input")
+    val password = getPassword() ?: return PASSWORD_ERROR
     val image = getBufferedImage(input) ?: return INPUT_ERROR
-    var lastThree = listOf(1, 1, 1)
-    var lastEight = ""
-    var message = ""
+    val message = mutableListOf<Byte>()
 
     for (y in 0 until image.height) {
         for (x in 0 until image.width) {
-            lastEight += Color(image.getRGB(x, y)).blue % 2
-            if (lastEight.length == 8) {
-                val code = lastEight.toInt(2)
-                message += code.toChar()
-                lastThree = lastThree.drop(1) + code
-                if (lastThree == END) return "Message:\n" + message.dropLast(3)
-                lastEight = ""
+            message.add((Color(image.getRGB(x, y)).blue % 2).toByte())
+            if (message.size >= END.size && message.size % 8 == 0 && message.takeLast(END.size) == END) {
+                return "Message:\n" + decodeMessage(message.dropLast(END.size), password)
             }
         }
     }
     return "No message was hidden!"
 }
 
-private fun getBits() = (getString("Message to hide:").map { it.code } + END).joinToString("") {
-    it.toString(2).padStart(8, '0')
+private fun transformBits(message: List<Byte>, password: String) = getBits(password).let { keyBits ->
+    message.mapIndexed { index, byte -> byte xor keyBits[index % keyBits.size] }
 }
 
-private fun getFile(type: String) = File(getString("$type image file:"))
+private fun getBits(message: String) = message.map { it.code }.map {
+    it.toString(2).padStart(8, '0').map { char -> char.digitToInt().toByte() }
+}.flatten()
+
+private fun decodeMessage(message: List<Byte>, password: String) =
+    transformBits(message, password).joinToString("").chunked(8).map { it.toInt(2).toChar() }.joinToString("")
+
+private fun saveImage(image: BufferedImage, file: File): Boolean {
+    return try {
+        ImageIO.write(image, "png", file)
+    } catch (e: Exception) {
+        false
+    }
+}
 
 private fun getBufferedImage(file: File): BufferedImage? {
     return try {
@@ -84,13 +95,9 @@ private fun getBufferedImage(file: File): BufferedImage? {
     }
 }
 
-private fun saveImage(image: BufferedImage, file: File): Boolean {
-    return try {
-        ImageIO.write(image, "png", file)
-    } catch (e: Exception) {
-        false
-    }
-}
+private fun getPassword() = getString("Password:").let { it.ifEmpty { null } }
+
+private fun getFile(type: String) = File(getString("$type image file:"))
 
 private fun getString(message: String): String {
     println(message)
