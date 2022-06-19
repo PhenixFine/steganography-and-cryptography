@@ -1,66 +1,55 @@
 # Steganography and Cryptography
-Stage 3 of 4 for JetBrains Academy - Kotlin - [Steganography and Cryptography project](https://hyperskill.org/projects/160/stages/832/implement).   
-This stage has us hide the message one bit at a time within the color blue of each pixel needed.
+Stage 4 of 4 for JetBrains Academy - Kotlin - [Steganography and Cryptography project](https://hyperskill.org/projects/160/stages/833/implement).   
+This stage has us encrypt the message using a password and xor.
 ### Description
-Steganography is about hiding information in such a way that no-one would ever guess there's a secret message hidden right before their eyes. The method we are going to use for concealing a message in an image is based on slight color changes that can’t be detected.
+We hid the message well, but one can't be too careful, so let's encrypt the message itself.
 
-As you already know, the message data can be inserted at the positions of the least significant bits of each color value of each pixel. That makes 3 bits per pixel and a total of 3*[image width]*[image height] bits for the whole image. Of course, there is no need to use all of them: it would be more efficient to have an algorithm that picks which bits to use. We could make it even more complex: the bit selection can be based on a password so that the configuration is different every time the password is changed.
+Exclusive OR (XOR) is a logical operation whose output is only true when its inputs differ. XOR can also be used on data bits where `1` stands for `true` and `0` stands for `false`. Below you can find both the **XOR truth table** (on the left) with the input and output values of the XOR operation and the XOR bitwise operation (on the right).    
+![XOR truth table and XOR bitwise operation](images/tables.png)     
+XOR has an interesting mathematical feature: _A XOR B = C and C XOR B = A_. If _A_ is the message and **B** the password, then _C_ is the encrypted message. Using _B_ and _C_, we can reconstruct _A_.
 
-However, to keep things simple, in this project, we will use only the least significant bits of the blue color of each pixel. Thus, each image can hold up to [image width]*[image height] bits.
+Below is an example where we use Bytes as a message, a password, and an encrypted message:    
+![encryption example](images/xor.png)    
+Thus, not only the same password can be used for encryption and decryption (**symmetric encryption**), but also the same simple method. This encryption is very strong if the password is random and has the same size as the message.
 
-As seen in the previous stage, images can be handled as 2-dimensional arrays. In this stage, the order of pixels should be left to right in the first row and then the same for each consecutive row. The picture below illustrates the order:       
-![Pixel storage order](images/order3.png)     
-The message to hide has the String type and UTF-8 charset. As a result, the message can be in any language. In order to conceal the secret message, we have to first convert it to an Array of Bytes: you can do it with the `encodeToByteArray()` function. Respectively, an array of bytes can be restored to the String type by applying `toString(Charsets.UTF_8)`.
-
-When the program reads the image bits in order to reconstruct the message, it has to know when to stop, that is, when it has read the entire message. For this, certain bytes should be applied at the end of the Bytes Array. Specifically, we will add three bytes with values 0, 0, 3 (or 00000000 00000000 00000011 in the binary format). When the program encounters these bytes, it will know that it has reached the end of the message.
+In this stage, the user should be asked for a password, and then the message is encrypted before it's hidden in the image.
 ### Objectives
-When the `hide` command is given, the program gets the input and output image filenames as in the previous stage. Then, it prompts the user for the secret message by printing `Message to hide:`.
+When the `hide` command is given and the secret message is input, the user should be prompted for a password with the message `Password:`.
 
-The message should be converted to an array of bytes. Then, 3 bytes with the values 0, 0, 3 should be added at the end of the array.
+The program reads the password string and converts it to a Bytes Array. The first message byte will be XOR encrypted using the first password byte, the second message byte will be XOR encrypted with the second password byte, and so on. If the password is shorter than the message, then after the last byte of the password, the first byte of the password should be used again.
 
-The program should check that the image size is adequate for holding the Bytes array. If not, it should print an error message with the text `The input image is not large enough to hold this message.` and return to the menu.
+Three Bytes with values 0, 0, 3 should be added to the encrypted Bytes Array. If the image size is adequate for holding the Bytes array, the result is hidden in the image like in the previous stage.
 
-Each bit of this Bytes Array will be saved at the position of the least significant bit of the blue color of each pixel, as shown in the picture below. The output image should be saved in the PNG format.    
-![where to save each bit](images/pixels.png)    
-When the `show` command is given, the program asks for the image filename (previously saved with the hidden message) by printing `Input image file:`. The image will be opened and the Bytes Array will be reconstructed bit by bit; the program will stop reading it when the bytes with the values 0, 0, 3 are encountered.
-
-The last 3 bytes (values 0, 0, 3) should be removed from the end of the Bytes Array. Then, the message should be restored as a String from the Bytes Array (or 00000000 00000000 00000011 bits).
-
-The program should print `Message:` and then the message itself on a new line.
+When the `show` command is given and the filename is input, the user should be prompted for the password with the message `Password:`. The image should open and the encrypted Bytes Array should be reconstructed just like in the previous stage; the program stops reading it when the bytes with the values 0, 0, 3 are found. The last three bytes should be removed and the encrypted Bytes Array should be decrypted using the password. Finally, the message should be restored to the String type, and the program should print `Message:` and then the message itself on a new line.
 ### Examples
 The greater-than symbol followed by a space (`> `) represents the user input. Note that it's not part of the input.
-#### Example 1: Hiding and extracting a message.
+#### Example 1: Encrypting and decrypting a message.
 ```text
 Task (hide, show, exit):
 > hide
 Input image file:
-> sky.png
+> travel.png
 Output image file:
-> hide.png
+> enc.png
 Message to hide:
-> Hello World!
-Message saved in hide.png image.
+> My encrypted message!
+Password:
+> mypassword
+Message saved in enc.png image.
 Task (hide, show, exit):
 > show
 Input image file:
-> hide.png
+> enc.png
+Password:
+> mypassword
 Message:
-Hello World!
+My encrypted message!
 Task (hide, show, exit):
 > exit
 Bye!
 ```
-#### Example 2: Hiding messages in a very small image.
+#### Example 2: Encrypting a message in a very small image.
 ```text
-Task (hide, show, exit):
-> hide
-Input image file:
-> small.png
-Output image file:
-> out1.png
-Message to hide:
-> 123
-Message saved in out1.png image.
 Task (hide, show, exit):
 > hide
 Input image file:
@@ -69,6 +58,8 @@ Output image file:
 > out2.png
 Message to hide:
 > abcdefghijk
+Password:
+> mypassword
 The input image is not large enough to hold this message.
 Task (hide, show, exit):
 > exit
