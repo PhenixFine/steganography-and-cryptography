@@ -58,5 +58,5 @@ val versionComponents = fullVersion
 
 val currentJdk = if (versionComponents[0] == 1) versionComponents[1] else versionComponents[0]
 
-rootProject.name = "Steganography_CLI"
+rootProject.name = "steganography-and-cryptography"
 
