@@ -32,6 +32,10 @@ public fun fileByteArrayToBufferedImage(byteArray: ByteArray): BufferedImage? {
     }
 }
 
+public fun File.toImageRelay(): ImageRelay {
+    return ImageRelay(this.readBytes())
+}
+
 public fun bufferedImageToBitmapInfo(bufferedImage: BufferedImage): BitmapInfo {
     val width = bufferedImage.width
     val height = bufferedImage.height

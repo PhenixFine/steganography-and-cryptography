@@ -9,9 +9,9 @@ public fun hide(): String {
     val userMessage = getString("Message to hide:").let { it.ifEmpty { null } } ?: return "Message can't be empty!"
     val password = getPassword() ?: return PASSWORD_ERROR
     val image = getBufferedImage(input) ?: return INPUT_ERROR
-    val imageinfo = input.readBytes().toBitmapInfo() ?: return INPUT_ERROR
+    val image_relay = input.toImageRelay() ?: return INPUT_ERROR
     val enoughSpace = image.width * image.height >= userMessage.length * 8 + END.size
-    val enoughSpace_info = imageinfo.width * imageinfo.height >= userMessage.length * 8 + END.size
+    val enoughSpace_info = image_relay.width * image_relay.height >= userMessage.length * 8 + END.size
     val notLargeEnough = "The input image is not large enough to hold this message."
     val message = if (enoughSpace) "Message saved in ${output.name} image." else return notLargeEnough
     val message_info = if (enoughSpace_info) "Message saved in ${output.name} image." else return notLargeEnough
@@ -32,12 +32,12 @@ public fun hide(): String {
             image.setRGB(x, y, color.rgb)
         }
     }
-
-//    start@ for (y in 0 until imageinfo.height) {
-//        for (x in 0 until imageinfo.width) {
+//TODO !!  getRGB &  setRGB
+//    start@ for (y in 0 until image_relay.height) {
+//        for (x in 0 until image_relay.width) {
 //            if (index == bits.size) break@start
 //            val bit = bits[index++].toInt()
-//            val color = Color(imageinfo.getRGB(x, y)).let {
+//            val color = Color(image_relay.getRGB(x, y)).let {
 //                Color(
 //                    it.red,
 //                    it.green,
